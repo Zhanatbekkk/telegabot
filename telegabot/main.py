@@ -11,23 +11,21 @@ from telegram.ext import (
     CallbackQueryHandler,
     ContextTypes,
 )
-from telegram.request import HTTPXRequest
+import os
 
-# Создаём клиент без verify
-client = httpx.AsyncClient()
-
-# Создаём HTTPXRequest без verify
-request = HTTPXRequest(client=client)
+# Создаём HTTPX клиент (без использования HTTPXRequest)
+client = httpx.AsyncClient(verify=False)
 
 # ТВОИ ДАННЫЕ
-TOKEN = os.getenv("BOT_TOKEN")
+TOKEN = os.getenv("BOT_TOKEN")  # Берем переменные окружения для безопасности
 CHAT_ID = int(os.getenv("CHAT_ID"))
 
 # Логирование
 logging.basicConfig(level=logging.INFO)
 
+
 def get_currency():
-    today = datetime.now(pytz.timezone("Asia/Almaty")).strftime('%d.%m.%Y')
+    today = datetime.now(pytz.timezone("Asia/Almaty")).strftime("%d.%m.%Y")
     url = "https://nationalbank.kz/rss/rates_all.xml"
     try:
         response = requests.get(url, timeout=5)
@@ -50,10 +48,14 @@ def get_currency():
 
     return f"📅 Курс на {today} (Астана):\n🇺🇸 USD: {usd} ₸\n🇪🇺 EUR: {eur} ₸\n🇷🇺 RUB: {rub} ₸"
 
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [[InlineKeyboardButton("📊 Получить курс", callback_data="get_rate")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("Привет! Я бот курса валют.", reply_markup=reply_markup)
+    await update.message.reply_text(
+        "Привет! Я бот курса валют.", reply_markup=reply_markup
+    )
+
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -61,9 +63,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = get_currency()
     await query.edit_message_text(text=text)
 
+
 async def send_morning_rate(context: ContextTypes.DEFAULT_TYPE):
     text = get_currency()
     await context.bot.send_message(chat_id=CHAT_ID, text=text)
+
 
 def get_seconds_until_8_astana():
     tz = pytz.timezone("Asia/Almaty")
@@ -73,8 +77,10 @@ def get_seconds_until_8_astana():
         target += timedelta(days=1)
     return (target - now).total_seconds()
 
+
 async def main():
-    app = ApplicationBuilder().token(TOKEN).request(request).build()
+    # Используем client в приложении напрямую
+    app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
@@ -88,6 +94,8 @@ async def main():
     await app.updater.start_polling()
     await asyncio.Event().wait()
 
+
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(main())
