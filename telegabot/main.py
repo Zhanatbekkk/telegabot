@@ -2,6 +2,7 @@ import logging
 import requests
 import pytz
 import httpx
+import os
 from datetime import datetime, time, timedelta
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -17,8 +18,8 @@ httpx_client = httpx.AsyncClient(verify=False)
 request = HTTPXRequest(client=httpx_client)
 
 # ✅ ТВОИ ДАННЫЕ
-TOKEN = "7566959944:AAEK4jEofM1z7T5JMoK5kYmzTzX_WCY0OCI"  # ← вставь сюда токен бота
-CHAT_ID = 6259223196  # ← вставь сюда свой chat_id
+TOKEN = os.getenv("BOT_TOKEN")
+CHAT_ID = int(os.getenv("CHAT_ID"))
 
 # Логирование
 logging.basicConfig(level=logging.INFO)
