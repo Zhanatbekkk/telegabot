@@ -13,11 +13,14 @@ from telegram.ext import (
 )
 from telegram.request import HTTPXRequest
 
-# Отключаем SSL-проверку через HTTPX
-request = HTTPXRequest(verify=False)
+# Создаём клиент без verify
+client = httpx.AsyncClient()
+
+# Создаём HTTPXRequest без verify
+request = HTTPXRequest(client=client)
 
 # ТВОИ ДАННЫЕ
-TOKEN = os.getenv("BOT_TOKEN")  # Используем переменные окружения
+TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = int(os.getenv("CHAT_ID"))
 
 # Логирование
