@@ -13,21 +13,18 @@ from telegram.ext import (
 )
 from telegram.request import HTTPXRequest
 
-# 🔐 Отключаем SSL-проверку (если на Render потребуется)
-httpx_client = httpx.AsyncClient(verify=False)
-request = HTTPXRequest(client=httpx_client)
+# Отключаем SSL-проверку через HTTPX
+request = HTTPXRequest(verify=False)
 
-# ✅ ТВОИ ДАННЫЕ
-TOKEN = os.getenv("BOT_TOKEN")
+# ТВОИ ДАННЫЕ
+TOKEN = os.getenv("BOT_TOKEN")  # Используем переменные окружения
 CHAT_ID = int(os.getenv("CHAT_ID"))
 
 # Логирование
 logging.basicConfig(level=logging.INFO)
 
-
-# Получение курса валют с Нацбанка
 def get_currency():
-    today = datetime.now(pytz.timezone("Asia/Almaty")).strftime("%d.%m.%Y")
+    today = datetime.now(pytz.timezone("Asia/Almaty")).strftime('%d.%m.%Y')
     url = "https://nationalbank.kz/rss/rates_all.xml"
     try:
         response = requests.get(url, timeout=5)
@@ -50,29 +47,21 @@ def get_currency():
 
     return f"📅 Курс на {today} (Астана):\n🇺🇸 USD: {usd} ₸\n🇪🇺 EUR: {eur} ₸\n🇷🇺 RUB: {rub} ₸"
 
-
-# Команда /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [[InlineKeyboardButton("📊 Получить курс", callback_data="get_rate")]]
-    markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("Привет! Я бот курса валют.", reply_markup=markup)
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text("Привет! Я бот курса валют.", reply_markup=reply_markup)
 
-
-# Обработка кнопки
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     text = get_currency()
     await query.edit_message_text(text=text)
 
-
-# Автоматическая утренняя отправка
 async def send_morning_rate(context: ContextTypes.DEFAULT_TYPE):
     text = get_currency()
     await context.bot.send_message(chat_id=CHAT_ID, text=text)
 
-
-# Вычисляем сколько секунд до 8:00 по Астане
 def get_seconds_until_8_astana():
     tz = pytz.timezone("Asia/Almaty")
     now = datetime.now(tz)
@@ -81,15 +70,12 @@ def get_seconds_until_8_astana():
         target += timedelta(days=1)
     return (target - now).total_seconds()
 
-
-# Основной запуск
 async def main():
     app = ApplicationBuilder().token(TOKEN).request(request).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
 
-    # Запуск авторассылки в 8:00 по Астане
     seconds = get_seconds_until_8_astana()
     app.job_queue.run_repeating(send_morning_rate, interval=86400, first=seconds)
 
@@ -99,9 +85,6 @@ async def main():
     await app.updater.start_polling()
     await asyncio.Event().wait()
 
-
-# Запуск
 if __name__ == "__main__":
     import asyncio
-
     asyncio.run(main())
